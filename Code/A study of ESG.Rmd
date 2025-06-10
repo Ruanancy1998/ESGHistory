@@ -1,0 +1,453 @@
+---
+title: "ESG"
+output: html_document
+date: "2024-11-02"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r Load Data}
+
+setwd("/Users/nancy/Library/CloudStorage/Dropbox-个人/ESGHistory")
+getwd()
+
+#Load Libraries
+source("./Code/Load Libraries.R")
+
+#Load Clean Data
+ESG_CSR_global <- read_csv("./Data/raw/ESG_CSR_global.csv")
+ESG_CSR_US <- read_csv("./Data/raw/ESG_CSR_US.csv")
+
+GDPData <- read_excel("./Data/raw/GDPData.xlsx", sheet = "Regions")
+WDIData <- read_excel("./Data/raw/WDIEXCEL.xlsx", sheet = "Data")
+
+Gini_global <- read_csv("./Data/raw/economic-inequality-gini-index.csv")
+
+GDPData_long <- GDPData %>%
+  pivot_longer(cols = -Region, names_to = "Year", values_to = "Share")
+GDPData_long$Year <- as.integer(GDPData_long$Year)
+
+
+select_countries <- c("Australia", "Austria", "Brazil", "Canada", "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Ireland", "Italy", "Japan", "Kenya", "Malaysia", "Mexico", "Norway", "Poland", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkiye", "United Arab Emirates", "United Kingdom", "United States", "Qatar")
+
+select_regions <- c("East Asia & Pacific", "Europe & Central Asia", "Latin America & Caribbean", "Middle East & North Africa", "North America", "South Asia", "Sub-Saharan Africa")
+
+select_all <- c("Australia", "Austria", "Brazil", "Canada", "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Ireland", "Italy", "Japan", "Kenya", "Malaysia", "Mexico", "Norway", "Poland", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkiye", "United Arab Emirates", "United Kingdom", "United States", "World", "East Asia & Pacific", "Europe & Central Asia", "Latin America & Caribbean", "Middle East & North Africa", "North America", "South Asia", "Sub-Saharan Africa")
+
+
+WDIData_selected <- WDIData %>% filter(`Country Name` %in% select_all) #58344
+WDIData_World <- WDIData %>% filter(`Country Name` == "World") #58344
+
+
+WDIData_selected_energyimport <- WDIData %>% 
+  filter(`Indicator Name`== "Energy imports, net (% of energy use)") %>% 
+  filter(`Country Name` %in% select_countries) 
+
+WDIData_selected_long_energyimport <- WDIData_selected_energyimport %>%
+  pivot_longer(cols = c("1960":"2023"),
+               names_to = "Year", values_to = "Value")
+
+WDIData_selected_long_energyimport$Year <- as.numeric(as.character(WDIData_selected_long_energyimport$Year))
+
+
+# energy independence
+energyim <- ggplot(WDIData_selected_long_energyimport, aes(x = Year, y = Value)) +
+  geom_line(size = 0.7) +
+  facet_wrap(~ `Country Name`, scales = "free_y", ncol = 8) +
+  labs(
+    x = "Year", y = "Energy imports, net (% of energy use)", title = "Energy Dependence"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none") 
+energyim
+
+caption <- ggplot() +
+  annotate("text", x = 0, y = 0, label = "Data source: World Bank (2024)",
+           hjust = 1, vjust = 0,
+           size = 3, color = "black", fontface = "italic") +
+  theme_void()
+
+energyim + plot_annotation(caption = "Data source: World Bank World Development Indicators (2024)")
+
+
+
+# ageing population
+
+WDIData_selected_pop <- WDIData %>% 
+  filter(`Indicator Name`== "Population ages 65 and above (% of total population)" | `Indicator Name`== "Population ages 15-64 (% of total population)") %>%
+  filter(`Country Name` %in% select_countries1)
+#  filter(`Country Name` %in% select_all) %>%
+#  filter(!`Country Name` %in% select_regions)
+
+WDIData_selected_long_pop <- WDIData_selected_pop %>%
+  pivot_longer(cols = c("1960":"2023"),
+               names_to = "Year", values_to = "Value") %>%
+  pivot_wider(id_cols = c(`Country Name`, `Country Code`, Year),
+              names_from = `Indicator Name`, values_from = Value) %>%
+  mutate(`Old-Age Dependency Ratio` = `Population ages 65 and above (% of total population)`/`Population ages 15-64 (% of total population)`)
+
+WDIData_selected_long_pop$Year <- as.numeric(as.character(WDIData_selected_long_pop$Year))
+
+pop <- ggplot(WDIData_selected_long_pop, aes(x = Year, y = `Old-Age Dependency Ratio`)) +
+  geom_line(size = 0.7) +
+  facet_wrap(~ `Country Name`, scales = "free_y", ncol = 8) +
+  labs(
+    x = "Year", y = "Old-Age Dependency Ratio", title = "Financial Burden of Pensions"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none") 
+
+pop + plot_annotation(caption = "Data source: World Bank World Development Indicators (2024)")
+
+
+WDIData_selected_pop <- WDIData %>% 
+  filter(`Indicator Name`== "Population ages 65 and above (% of total population)" | `Indicator Name`== "Population ages 15-64 (% of total population)") %>%
+  filter(`Country Name` %in% select_all) %>%
+  filter(!`Country Name` %in% select_regions)
+
+unique(WDIData$`Country Name`)
+  
+
+#select_countries1 <- c("Australia", "Austria", "Brazil", "Canada", "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Ireland", "Italy", "Japan", "Kenya", "Malaysia", "Mexico", "Norway", "Poland", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkiye", "Korea, Rep.", "United Kingdom", "United States", "Qatar")
+
+select_countries1 <- c("Australia", "Austria", "Brazil", "Canada", "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Ireland", "Italy", "Japan", "Kenya", "Malaysia", "Mexico", "Norway", "Poland", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkiye", "World", "United Kingdom", "United States", "Qatar")
+
+
+# saving rates
+
+WDIData_selected_saving <- WDIData %>% 
+  filter(`Indicator Name`== "Gross savings (% of GNI)" | `Indicator Name`== "Gross domestic savings (% of GDP)") %>% 
+  filter(`Country Name` %in% select_countries1) 
+
+WDIData_selected_long_saving <- WDIData_selected_saving %>%
+  pivot_longer(cols = c("1960":"2023"),
+               names_to = "Year", values_to = "Value")
+
+WDIData_selected_long_saving$Year <- as.numeric(as.character(WDIData_selected_long_saving$Year))
+
+saving_global <- WDIData_selected_long_saving %>% 
+  filter(Year >= 1980)
+
+saving <- ggplot(saving_global, aes(x = Year, y = Value, linetype = `Indicator Name`)) +
+  geom_line(size = 0.7) +
+  facet_wrap(~ `Country Name`, scales = "free_y", ncol = 8) +
+  labs(
+    x = "Year", y = "Percentage (%)", title = "Resilience to shocks", color = "Indicator"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom") 
+
+saving + plot_annotation(caption = "Data source: World Bank World Development Indicators (2024)")
+
+
+#Adjusted net savings, including particulate emission damage (% of GNI)
+#Adjusted net savings, excluding particulate emission damage (% of GNI)
+#Gross domestic savings (% of GDP)
+
+
+# income inequality
+
+income_order <- c(
+  "Income share held by highest 20%",
+  "Income share held by fourth 20%",
+  "Income share held by third 20%",
+  "Income share held by second 20%",
+  "Income share held by lowest 20%"
+)
+
+select_countries3 <- c("Australia", "Austria", "Brazil", "Canada", "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Ireland", "Italy", "Japan", "Kenya", "Malaysia", "Mexico", "Norway", "Poland", "Russia", "Ethiopia", "Netherlands", "Argentina", "South Africa", "Korea, Rep.", "Spain", "Sweden", "Switzerland", "Thailand", "United Arab Emirates", "United Kingdom", "United States")
+
+year_cols <- as.character(1980:2020)
+
+WDIData_selected_income <- WDIData %>% 
+  filter(`Indicator Name`== "Income share held by highest 20%" | 
+         `Indicator Name`== "Income share held by fourth 20%"|
+         `Indicator Name`== "Income share held by third 20%"|
+         `Indicator Name`== "Income share held by second 20%"|
+         `Indicator Name`== "Income share held by lowest 20%") %>%
+  filter(!if_all(all_of(year_cols), is.na)) %>% 
+  filter(`Country Name` %in% select_countries3) 
+
+WDIData_selected_long_income <- WDIData_selected_income %>%
+  pivot_longer(cols = c("1960":"2023"),
+               names_to = "Year", values_to = "Value")
+
+WDIData_selected_long_income$Year <- as.numeric(as.character(WDIData_selected_long_income$Year))
+
+income_global <- WDIData_selected_long_income %>% 
+  filter(Year >= 1980)
+
+income_global$`Indicator Name` <- factor(income_global$`Indicator Name`, levels = income_order)
+
+income <- ggplot(income_global, aes(x = Year, y = Value, fill = `Indicator Name`)) +
+  geom_area(alpha = 0.9) +
+  #geom_line(size = 0.7) +
+  facet_wrap(~ `Country Name`, ncol = 8) +
+  scale_fill_manual(
+    breaks = income_order,  # 设置显示顺序
+    values = c(
+      "Income share held by highest 20%" = "#1a9641",
+      "Income share held by fourth 20%"  = "#a6d96a",
+      "Income share held by third 20%"   = "#ffffbf",
+      "Income share held by second 20%"  = "#fdae61",
+      "Income share held by lowest 20%"  = "#d7191c"
+    )
+  ) +
+  guides(fill = guide_legend(ncol = 3)) +
+  labs(
+    x = "Year", y = "Percentage (%)", color = "Indicator"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom") 
+
+income + plot_annotation(caption = "Data source: World Bank World Development Indicators (2024)")
+
+
+
+select_countries5 <- c("Australia", "Austria", "Brazil", "Canada", "Chile", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "India", "Indonesia", "Iran", "Ireland", "Italy", "Turkey", "Kenya", "Malaysia", "Mexico", "Norway", "Poland", "Russia", "Saudi Arabia", "Singapore", "South Africa", "South Korea", "Spain", "Sweden", "Switzerland", "Thailand", "Turkiye", "Netherlands", "United Kingdom", "United States")
+
+
+# Gini index
+
+unique(Gini_global$Entity)
+Gini_countries <- Gini_global %>% 
+  filter(Entity %in% select_countries5) %>% 
+  filter(Year >= 1980)
+
+gini <- ggplot(Gini_countries, aes(x = Year, y = `Gini coefficient`)) +
+  geom_line(size = 0.7) +
+  facet_wrap(~ Entity, ncol = 8) +
+  labs(
+    x = "Year", y = "Gini coefficient", title = "Income inequality within countries"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "none") 
+
+gini + plot_annotation(caption = "Data source: World Bank Poverty and Inequality Platform (2024)")
+
+
+# world population
+
+year_cols <- as.character(1960:2023)
+WDIData_selected <- WDIData_selected %>%
+  filter(rowSums(!is.na(select(., all_of(year_cols)))) > 0) #46256
+WDIData_World <- WDIData_World %>%
+  filter(rowSums(!is.na(select(., all_of(year_cols)))) > 0) #46256
+
+unique(WDIData$`Country Name`)
+unique(WDIData_selected$`Indicator Name`)
+
+WDIData_World_long <- WDIData_World %>%
+  pivot_longer(cols = c("1960":"2023"),
+               names_to = "Year", values_to = "Value")
+
+WDIData_World_long$Year <- as.numeric(as.character(WDIData_World_long$Year))
+
+WDIData_World_long_pop <- WDIData_World_long %>%
+  filter(`Indicator Name`== "Population, total")
+
+ggplot(WDIData_World_long_pop, aes(x = Year, y = Value)) +
+  geom_line(color = "blue", size = 1) +
+  labs(title = "Global Population Over Time",
+       x = "Year",
+       y = "Population (in billions)") +
+  theme_minimal()
+
+
+select_countries2 <- c("Congo, Rep.", "Eswatini", "Kenya", "Lesotho", "South Africa", "Sudan", "South Africa", "Nigeria", "Kenya", "Ghana", "Ethiopia", "Morocco", "Algeria", "Tunisia", "Tanzania", "Uganda", 
+  "Senegal", "Zambia", "Mozambique", "Angola", "Côte d'Ivoire", "Rwanda", "Cameroon", "Niger", "Madagascar", "Cote d'Ivoire", "Mali", "Benin", "Burkina Faso", "Namibia", "Sierra Leone", "Togo", "Botswana", "Congo, Dem. Rep.", "Libya")
+
+
+# Access to electricity in Africa
+
+WDIData_selected_elect <- WDIData %>% 
+  filter(`Indicator Name`== "Access to electricity (% of population)" | 
+           `Indicator Name`== "Access to electricity, rural (% of rural population)") %>% 
+  filter(`Country Name` %in% select_countries2) 
+
+WDIData_selected_long_elect <- WDIData_selected_elect %>%
+  pivot_longer(cols = c("1960":"2023"),
+               names_to = "Year", values_to = "Value")
+
+WDIData_selected_long_elect$Year <- as.numeric(as.character(WDIData_selected_long_elect$Year))
+
+elect_global <- WDIData_selected_long_elect %>% 
+  filter(Year >= 1990)
+
+elect <- ggplot(elect_global, aes(x = Year, y = Value, linetype = `Indicator Name`)) +
+  geom_line(size = 0.7) +
+  facet_wrap(~ `Country Name`, ncol = 8) +
+  labs(
+    x = "Year", y = "Percentage (%)", title = "Access to Electricity", color = "Indicator"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom") 
+
+elect + plot_annotation(caption = "Data source: World Bank World Development Indicators (2024)")
+
+
+
+select_countries6 <- c("Afghanistan", "Armenia", "Azerbaijan", "Bangladesh", "Bhutan", "Singapore", "Cambodia", "China", "Georgia", "India", "Indonesia", 
+  "Iran, Islamic Rep.", "Iraq", "Israel", "Jordan", "Kyrgyz Republic", 
+  "Lao PDR", "Lebanon", "Malaysia", "Maldives", "Mongolia", "Myanmar", 
+  "Nepal", "Oman", "Pakistan", "Philippines", "Sri Lanka", "Tajikistan", 
+  "Thailand", "Timor-Leste", "Turkmenistan", 
+  "Uzbekistan", "Vietnam")
+
+
+# Access to internet in Asia
+
+WDIData_selected_internet <- WDIData %>% 
+  filter(`Indicator Name`== "Individuals using the Internet (% of population)" | `Indicator Name`== "Mobile cellular subscriptions (per 100 people)") %>% 
+  filter(`Country Name` %in% select_countries6) 
+
+WDIData_selected_long_internet <- WDIData_selected_internet %>%
+  pivot_longer(cols = c("1960":"2023"),
+               names_to = "Year", values_to = "Value")
+
+
+WDIData_selected_long_internet$Year <- as.numeric(as.character(WDIData_selected_long_internet$Year))
+
+internet_global <- WDIData_selected_long_internet %>% 
+  filter(Year >= 1990)
+
+internet <- ggplot(internet_global, aes(x = Year, y = Value, linetype = `Indicator Name`)) +
+  geom_line(size = 0.7) +
+  facet_wrap(~ `Country Name`, ncol = 8) +
+  labs(
+    x = "Year", title = "Access to Digital Technology", color = "Indicator"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom") 
+
+internet + plot_annotation(caption = "Data source: World Bank World Development Indicators (2024)")
+
+
+
+# Share of GDP
+
+shareGDP <- ggplot(GDPData_long, aes(x = Year, y = Share, fill = Region)) +
+  geom_area(alpha = 0.9) +
+  scale_fill_manual(values = c(
+    "East Asia & Pacific" = "#ff7f0e", 
+    "South Asia" = "#9467bd",        
+    "Europe & Central Asia" = "#1f77b4",      
+    "Middle East & North Africa" = "#2ca02c",       
+    "Sub-Saharan Africa" = "#d62728",       
+    "North America" = "#17becf",           
+    "Latin America & Caribbean" = "#bcbd22"
+  )) +
+  labs(
+    title = "",
+    x = "Year",
+    y = "Share of World GDP"
+  ) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    legend.position = "right"
+  ) +
+  annotate("text", 
+           x = Inf, y = -Inf, 
+           label = "Data source: World Bank (2024)", 
+           hjust = 1.1, vjust = -0.5, 
+           size = 3, color = "black", fontface = "italic")
+shareGDP
+
+
+
+# List all CSV file (google trends)
+
+file_list <- list.files(path = "./Data/", pattern = "*.csv", full.names = TRUE)
+
+cleaned_data_list <- list()
+
+for (file in file_list) {
+  
+  df <- read_csv(file, skip = 1)
+  
+  colnames(df) <- c("Month", "ESG", "CSR", "ImpactInvesting", "SRI", "SustainableDevelopment")
+  
+  df <- df %>%
+    mutate(across(ESG:SustainableDevelopment, ~ as.numeric(ifelse(trimws(.) == "<1", 0.5, .))))
+  
+  country_name <- gsub(".csv", "", basename(file))
+  df$Country <- country_name
+  
+  cleaned_data_list[[country_name]] <- df
+}
+
+all_data <- bind_rows(cleaned_data_list)
+
+summary(all_data)
+unique(all_data$Country)
+
+
+# country list
+selected_countries <- c("World", "United States", "China", "Russia", "Germany", 
+                        "United Kingdom", "France", "Japan", "India", "Brazil")
+
+plot_data_long <- plot_data %>%
+  pivot_longer(cols = c(ESG, CSR, ImpactInvesting, SRI, SustainableDevelopment),
+               names_to = "Keyword", values_to = "SearchInterest")
+
+all_data_long <- all_data %>%
+  pivot_longer(cols = c(ESG, CSR, ImpactInvesting, SRI, SustainableDevelopment),
+               names_to = "Keyword", values_to = "SearchInterest")
+
+
+# Define color-blind-friendly colors
+cb_palette <- c(
+  "CSR" = "#E69F00",                     # orange
+  "ESG" = "#0072B2",                     # sky blue
+  "ImpactInvesting" = "#D55E00",         # reddish orange / tomato red
+  "SRI" = "#CC79A7",                     # reddish purple
+  "SustainableDevelopment" = "#009E73"  # green
+)
+
+# Define nicer display labels for legend
+label_names <- c(
+  "CSR" = "CSR",
+  "ESG" = "ESG",
+  "ImpactInvesting" = "Impact Investing",
+  "SRI" = "SRI",
+  "SustainableDevelopment" = "Sustainable Development"
+)
+
+plot_data_long$Keyword <- factor(plot_data_long$Keyword,
+                                 levels = c("SRI","CSR","SustainableDevelopment","ESG","ImpactInvesting"))
+
+# Final plot
+ggplot(plot_data_long, aes(x = as.Date(paste0(Month, "-01")), y = SearchInterest, color = Keyword)) +
+  geom_line(size = 0.7) +
+  facet_wrap(~ Country, scales = "free_y", ncol = 2) +
+  scale_color_manual(values = cb_palette, labels = label_names) +
+  labs(
+    x = "Time", y = "Google Trends", color = "Theme"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+
+
+all_data_long$Keyword <- factor(all_data_long$Keyword,
+                                 levels = c("SRI","CSR","SustainableDevelopment","ESG","ImpactInvesting"))
+
+all_data_long <- all_data_long %>%
+  filter(Country != "Netherlands" & Country != "Israel")
+
+ggplot(all_data_long, aes(x = as.Date(paste0(Month, "-01")), y = SearchInterest, color = Keyword)) +
+  geom_line(size = 0.5) +
+  facet_wrap(~ Country, scales = "free_y", ncol = 4) +
+  scale_color_manual(values = cb_palette, labels = label_names) +
+  labs(
+    x = "Time", y = "Google Trends", color = "Topics"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "bottom")
+
+```
+
+
+
